@@ -11,6 +11,7 @@ class ParsedBankSms {
   final TxnKind kind;
   final int amount; // به ریال
   final String? cardSuffix; // ۴ رقم آخر
+  final String? toCardSuffix; // ۴ رقم آخر کارت مقصد (در صورت وجود برای انتقال)
   final int? balance; // مانده به ریال در صورت وجود
   final DateTime occurredAt;
   final String title;
@@ -24,6 +25,7 @@ class ParsedBankSms {
     required this.kind,
     required this.amount,
     this.cardSuffix,
+    this.toCardSuffix,
     this.balance,
     required this.occurredAt,
     required this.title,
@@ -32,32 +34,38 @@ class ParsedBankSms {
 
 class BankSmsParser {
   static const _banks = [
-    ('بانک ملت', ['ملت', 'mellat']),
-    ('بانک ملی', ['بانک ملی', 'ملی ایران', 'bmi']),
-    ('بانک سامان', ['سامان', 'saman']),
-    ('بلوبانک', ['بلوبانک', 'بلو بانک', 'blubank', 'blu']),
-    ('بانک رسالت', ['رسالت', 'resalat']),
-    ('بانک پاسارگاد', ['پاسارگاد', 'pasargad', 'bpi']),
-    ('بانک تجارت', ['تجارت', 'tejarat']),
-    ('بانک صادرات', ['صادرات', 'saderat', 'bsi']),
-    ('بانک سپه', ['سپه', 'sepah']),
-    ('بانک آینده', ['آینده', 'ayandeh']),
-    ('بانک پارسیان', ['پارسیان', 'parsian']),
-    ('بانک شهر', ['بانک شهر', 'shahr']),
-    ('بانک رفاه', ['رفاه', 'refah']),
-    ('بانک کشاورزی', ['کشاورزی', 'agri', 'keshavarzi']),
-    ('بانک مسکن', ['مسکن', 'maskan']),
-    ('بانک اقتصاد نوین', ['اقتصاد نوین', 'enbank']),
-    ('بانک مهر ایران', ['مهر ایران', 'qmb']),
-    ('بانک سینا', ['سینا', 'sina']),
-    ('بانک کارآفرین', ['کارآفرین', 'karafarin']),
-    ('پست بانک', ['پست بانک', 'postbank']),
-    ('بانک دی', ['بانک دی', 'day bank']),
-    ('بانک گردشگری', ['گردشگری', 'tourism bank']),
-    ('بانک سرمایه', ['بانک سرمایه', 'sarmayeh']),
-    ('بانک ایران زمین', ['ایران زمین', 'iranzamin']),
-    ('بانک توسعه تعاون', ['توسعه تعاون', 'ttbank']),
-    ('بانک خاورمیانه', ['خاورمیانه', 'middle east']),
+    ('بلوبانک', ['بلو', 'بلوبانک', 'blubank', 'blu']),
+    ('بانک ملت', ['بانک ملت', 'ملت', 'mellat']),
+    ('بانک ملی', ['بانک ملی', 'ملی ایران', 'bmi', 'سامانه بام', 'بام ملی']),
+    ('بانک سامان', ['بانک سامان', 'سامان', 'saman']),
+    ('بانک پاسارگاد', ['بانک پاسارگاد', 'پاسارگاد', 'pasargad', 'bpi', 'ویپاد', 'wepod']),
+    ('بانک رسالت', ['بانک رسالت', 'رسالت', 'resalat', 'قرض الحسنه رسالت']),
+    ('بانک تجارت', ['بانک تجارت', 'تجارت', 'tejarat', 'باجت']),
+    ('بانک صادرات', ['بانک صادرات', 'صادرات', 'saderat', 'bsi', 'سپهر صادرات']),
+    ('بانک سپه', ['بانک سپه', 'سپه', 'sepah', 'انصار', 'قوامین', 'حکمت ایرانیان', 'کوثر', 'مهر اقتصاد']),
+    ('بانک آینده', ['بانک آینده', 'آینده', 'ayandeh', 'آبانک', 'abank', 'کیلید']),
+    ('بانک پارسیان', ['بانک پارسیان', 'پارسیان', 'parsian', 'توبانک']),
+    ('بانک شهر', ['بانک شهر', 'شهر', 'shahr', 'شهرزاد']),
+    ('بانک رفاه', ['بانک رفاه', 'رفاه', 'refah', 'رفاه کارگران']),
+    ('بانک کشاورزی', ['بانک کشاورزی', 'کشاورزی', 'agri', 'keshavarzi', 'بکاپ']),
+    ('بانک مسکن', ['بانک مسکن', 'مسکن', 'maskan']),
+    ('بانک اقتصاد نوین', ['بانک اقتصاد نوین', 'اقتصاد نوین', 'enbank', 'en bank']),
+    ('بانک مهر ایران', ['بانک مهر ایران', 'مهر ایران', 'qmb', 'مهرایران', 'مهرایرانیان']),
+    ('بانک سینا', ['بانک سینا', 'سینا', 'sina']),
+    ('بانک کارآفرین', ['بانک کارآفرین', 'کارآفرین', 'karafarin']),
+    ('پست بانک', ['پست بانک', 'postbank', 'post bank']),
+    ('بانک گردشگری', ['بانک گردشگری', 'گردشگری', 'tourism bank', 'tourismbank']),
+    ('بانک دی', ['بانک دی', 'دی', 'day bank', 'daybank']),
+    ('بانک سرمایه', ['بانک سرمایه', 'سرمایه', 'sarmayeh']),
+    ('بانک ایران زمین', ['بانک ایران زمین', 'ایران زمین', 'iranzamin', 'فراز']),
+    ('بانک توسعه تعاون', ['بانک توسعه تعاون', 'توسعه تعاون', 'ttbank', 'tt bank']),
+    ('بانک خاورمیانه', ['بانک خاورمیانه', 'خاورمیانه', 'middle east', 'mebank']),
+    ('بانک صنعت و معدن', ['بانک صنعت و معدن', 'صنعت و معدن', 'bim']),
+    ('بانک توسعه صادرات', ['بانک توسعه صادرات', 'توسعه صادرات', 'edbi']),
+    ('بانک مشترک ایران و ونزوئلا', ['ایران و ونزوئلا', 'ivbb']),
+    ('بانک مرکزی', ['بانک مرکزی', 'cbi']),
+    ('موسسه ملل', ['موسسه ملل', 'ملل', 'askariyeh', 'عسکریه']),
+    ('موسسه نور', ['موسسه نور', 'نور']),
   ];
 
   static String normalize(String s) {
@@ -112,6 +120,7 @@ class BankSmsParser {
 
     // استخراج ۴ رقم آخر کارت یا حساب
     final cardSuffix = _extractCardSuffix(norm);
+    final toCardSuffix = _extractToCardSuffix(norm);
 
     // استخراج تاریخ و ساعت از متن پیامک (در صورت وجود، وگرنه زمان پیامک)
     final occurredAt = _extractDateTime(norm, date);
@@ -135,6 +144,7 @@ class BankSmsParser {
       kind: kind,
       amount: amount,
       cardSuffix: cardSuffix,
+      toCardSuffix: toCardSuffix,
       balance: balance,
       occurredAt: occurredAt,
       title: title,
@@ -161,12 +171,22 @@ class BankSmsParser {
   static String? _detectBank(String text, String sender) {
     for (final item in _banks) {
       for (final kw in item.$2) {
-        if (text.contains(kw) || sender.contains(kw)) {
+        if (_matchesKeyword(text, sender, kw)) {
           return item.$1;
         }
       }
     }
     return null;
+  }
+
+  static bool _matchesKeyword(String text, String sender, String kw) {
+    if (sender.contains(kw)) return true;
+    if (kw.length > 3) {
+      return text.contains(kw);
+    }
+    // بررسی مرز کلمه برای واژه‌های کوتاه نظیر «بلو»، «دی»، «شهر»
+    final pat = RegExp('(^|[^a-zA-Z0-9آ-ی])${RegExp.escape(kw)}([^a-zA-Z0-9آ-ی]|\$)');
+    return pat.hasMatch(text);
   }
 
   static bool _isBankSender(String text, String sender, bool hasBankName) {
@@ -293,9 +313,24 @@ class BankSmsParser {
   static String? _extractCardSuffix(String norm) {
     // الگوهای کارت یا حساب
     final patterns = [
-      RegExp(r'(?:کارت|حساب|سپرده|به|از)[\s:.*xX-]*([0-9]{4})\b'),
+      RegExp(r'(?:از\s+کارت|از\s+حساب|از\s+سپرده|کارت|حساب|سپرده|از)[\s:.*xX-]*([0-9]{4})\b'),
       RegExp(r'(?:\*{2,}|[xX]{2,}|\.{2,})([0-9]{4})\b'),
       RegExp(r'\b[0-9]{4}[-*.]{1,4}([0-9]{4})\b'),
+    ];
+
+    for (final p in patterns) {
+      final m = p.firstMatch(norm);
+      if (m != null) {
+        return m.group(1);
+      }
+    }
+    return null;
+  }
+
+  static String? _extractToCardSuffix(String norm) {
+    final patterns = [
+      RegExp(r'(?:به\s+کارت|به\s+حساب|به\s+سپرده|مقصد)[\s:.*xX-]*([0-9]{4})\b'),
+      RegExp(r'\bبه[\s:.*xX-]*([0-9]{4})\b'),
     ];
 
     for (final p in patterns) {

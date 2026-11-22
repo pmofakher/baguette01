@@ -89,6 +89,39 @@ void main() {
       expect(res.occurredAt.minute, 20);
     });
 
+    test('parses BluBank with simple word بلو', () {
+      const sms = 'بلو\nخرید ۱۰۰,۰۰۰ تومان\nکارت: ۱۲۳۴\nمانده: ۲,۰۰۰,۰۰۰ تومان';
+      final res = BankSmsParser.parse(
+        id: '20',
+        body: sms,
+        sender: 'blu',
+        date: DateTime(2024, 11, 20),
+      );
+
+      expect(res, isNotNull);
+      expect(res!.bankName, 'بلوبانک');
+      expect(res.kind, TxnKind.expense);
+      expect(res.amount, 1000000); // 100,000 Tomans
+      expect(res.cardSuffix, '1234');
+      expect(res.balance, 20000000);
+    });
+
+    test('extracts destination card for transfer', () {
+      const sms = 'بانک ملت\nانتقال از حساب ...۱۱۱۱ به کارت ۲۲۲۲\nمبلغ: ۵۰۰,۰۰۰ ریال';
+      final res = BankSmsParser.parse(
+        id: '21',
+        body: sms,
+        sender: 'Bank Mellat',
+        date: DateTime(2024, 11, 21),
+      );
+
+      expect(res, isNotNull);
+      expect(res!.bankName, 'بانک ملت');
+      expect(res.cardSuffix, '1111');
+      expect(res.toCardSuffix, '2222');
+      expect(res.amount, 500000);
+    });
+
     test('ignores OTP messages', () {
       const sms = 'رمز یکبار مصرف شما: ۱۲۳۴۵۶ بانک سامان';
       final res = BankSmsParser.parse(

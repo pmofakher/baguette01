@@ -87,16 +87,31 @@ class TransactionsPage extends ConsumerWidget {
     return Column(children: [
       BTopBar(
         title: 'تراکنش‌ها',
-        action: Container(
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-              color: BColors.tertiary, shape: BoxShape.circle),
-          child: IconButton(
-            tooltip: 'خواندن پیامک‌های بانکی',
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.sms_outlined, size: 20),
-            onPressed: () => _syncSms(context, ref),
+        action: InkWell(
+          onTap: () => _syncSms(context, ref),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: BColors.fabPanel,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: BColors.annotation, width: 0.8),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.sms_outlined, size: 16, color: BColors.primaryDark),
+                SizedBox(width: 6),
+                Text(
+                  'وارد کردن تراکنش از sms ها',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: BColors.primaryDark,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -116,15 +131,75 @@ class TxnDetailPage extends ConsumerWidget {
   final String id;
   const TxnDetailPage({super.key, required this.id});
 
+  Future<void> _convertToTransfer(BuildContext context, WidgetRef ref, Txn t,
+      List<Account> accounts) async {
+    final otherAccounts = accounts.where((a) => a.id != t.accountId).toList();
+    if (otherAccounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('برای انتقال، حداقل به دو حساب در تنظیمات نیاز دارید.'),
+        ),
+      );
+      return;
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'این جیب به اون جیب (انتقال بین حساب‌ها)',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'حساب دیگر را انتخاب کنید. این تراکنش از مخارج/درآمدهای ماه خارج شده و فقط موجودی را جابجا می‌کند:',
+                style: TextStyle(fontSize: 12, color: BColors.primary),
+              ),
+              const SizedBox(height: 16),
+              for (final a in otherAccounts)
+                ListTile(
+                  leading: const Icon(Icons.account_balance_wallet_outlined),
+                  title: Text(a.name),
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    final updated = t.copyWith(
+                      kind: TxnKind.transfer,
+                      toAccountId: a.id,
+                      title: 'انتقال بین حساب‌ها',
+                      clearCategory: true,
+                    );
+                    await ref.read(repoProvider).upsertTxn(updated);
+                    ref.bump();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'به عنوان انتقال به «${a.name}» (این جیب به اون جیب) ثبت شد'),
+                        ),
+                      );
+                    }
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(txnProvider(id)).valueOrNull;
     final unit = ref.watch(settingsProvider).unit;
     final cats = ref.watch(categoryMapProvider).valueOrNull ?? {};
-    final accs = {
-      for (final a in ref.watch(accountsProvider).valueOrNull ?? <Account>[])
-        a.id: a.name
-    };
+    final accountsList = ref.watch(accountsProvider).valueOrNull ?? <Account>[];
+    final accs = {for (final a in accountsList) a.id: a.name};
     if (t == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -142,7 +217,29 @@ class TxnDetailPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('جزئیات تراکنش')),
       body: ListView(padding: const EdgeInsets.all(24), children: [
-        row('نوع:', t.kind.label),
+        if (t.kind == TxnKind.transfer)
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: BColors.annotation.withAlpha(50),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: BColors.annotation, width: 0.8),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.swap_horiz, color: BColors.primaryDark),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'این تراکنش «این جیب به اون جیب» است و در جمع مخارج ماه تاثیری ندارد.',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        row('نوع:', t.kind == TxnKind.transfer ? 'انتقال (این جیب به اون جیب)' : t.kind.label),
         if (t.title.isNotEmpty) row('عنوان:', t.title),
         if (t.kind != TxnKind.transfer)
           InkWell(
@@ -162,6 +259,19 @@ class TxnDetailPage extends ConsumerWidget {
         if (t.toAccountId != null) row('به حساب:', accs[t.toAccountId] ?? '—'),
         if (t.note.isNotEmpty) row('توضیحات:', t.note),
         const SizedBox(height: 24),
+        if (t.kind != TxnKind.transfer) ...[
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+              foregroundColor: BColors.primaryDark,
+            ),
+            onPressed: () =>
+                _convertToTransfer(context, ref, t, accountsList),
+            icon: const Icon(Icons.swap_horiz),
+            label: const Text('این جیب به اون جیب (انتقال بین حساب‌ها)'),
+          ),
+          const SizedBox(height: 10),
+        ],
         FilledButton(
             onPressed: () => context.push('/txn/edit/${t.id}'),
             child: const Text('ویرایش')),

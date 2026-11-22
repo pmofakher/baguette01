@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shamsi_date/shamsi_date.dart';
+import 'package:uuid/uuid.dart';
 
 import '../data/models.dart';
 import '../state/providers.dart';
@@ -65,7 +66,8 @@ class MonthPager extends ConsumerWidget {
     final n = ref.read(monthProvider.notifier);
     return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
       IconButton(
-          onPressed: () => n.state = addMonths(m, -1),
+          tooltip: 'ماه بعد',
+          onPressed: isCurrent ? null : () => n.state = addMonths(m, 1),
           icon: const Icon(Icons.chevron_right)),
       SizedBox(
           width: 140,
@@ -73,7 +75,8 @@ class MonthPager extends ConsumerWidget {
               textAlign: TextAlign.center,
               style: const TextStyle(fontWeight: FontWeight.w600))),
       IconButton(
-          onPressed: isCurrent ? null : () => n.state = addMonths(m, 1),
+          tooltip: 'ماه قبل',
+          onPressed: () => n.state = addMonths(m, -1),
           icon: const Icon(Icons.chevron_left)),
     ]);
   }
@@ -123,8 +126,14 @@ class TxnTile extends ConsumerWidget {
       TxnKind.expense => BColors.expenseRow,
       TxnKind.transfer => BColors.tertiary,
     };
+    final accs = {
+      for (final a in ref.watch(accountsProvider).valueOrNull ?? <Account>[])
+        a.id: a.name
+    };
+    final fromName = accs[t.accountId] ?? 'مبدأ';
+    final toName = accs[t.toAccountId] ?? 'مقصد';
     final head = t.kind == TxnKind.transfer
-        ? 'انتقال بین حساب‌ها'
+        ? 'انتقال: $fromName ⬅️ $toName'
         : isUncategorized
             ? '${t.kind.label} - بدون دسته‌بندی'
             : '${t.kind.label} - ${cat!.name}';
@@ -154,6 +163,22 @@ class TxnTile extends ConsumerWidget {
                                       : FontWeight.normal,
                                 )),
                           ),
+                          if (t.kind == TxnKind.transfer) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: BColors.annotation.withAlpha(60),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Text('این جیب به اون جیب',
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: BColors.primaryDark)),
+                            ),
+                          ],
                           if (isUncategorized) ...[
                             const SizedBox(width: 8),
                             InkWell(
@@ -225,29 +250,113 @@ Future<void> showQuickCategoryPicker(
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 16),
-            if (cats.isEmpty)
-              const Text('دسته‌ای تعریف نشده است')
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final c in cats)
-                    ActionChip(
-                      avatar: Text(c.emoji),
-                      label: Text(c.name),
-                      onPressed: () async {
-                        await ref
-                            .read(repoProvider)
-                            .upsertTxn(t.copyWith(categoryId: c.id));
-                        ref.bump();
-                        if (ctx.mounted) Navigator.pop(ctx);
-                      },
-                    ),
-                ],
-              ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final c in cats)
+                  ActionChip(
+                    avatar: Text(c.emoji),
+                    label: Text(c.name),
+                    onPressed: () async {
+                      await ref
+                          .read(repoProvider)
+                          .upsertTxn(t.copyWith(categoryId: c.id));
+                      ref.bump();
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                  ),
+                ActionChip(
+                  avatar: const Icon(Icons.add,
+                      size: 18, color: BColors.primaryDark),
+                  label: const Text('دسته جدید +',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  backgroundColor: BColors.annotation.withAlpha(80),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await showCreateCategoryAndAssign(context, ref, t);
+                  },
+                ),
+              ],
+            ),
           ],
         ),
+      ),
+    ),
+  );
+}
+
+Future<void> showCreateCategoryAndAssign(
+    BuildContext context, WidgetRef ref, Txn t) async {
+  final nameCtrl = TextEditingController();
+  final emojiCtrl = TextEditingController(text: '🏷️');
+
+  await showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    builder: (ctx) => Padding(
+      padding: EdgeInsets.fromLTRB(
+          24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'ساخت دسته جدید برای ${t.kind == TxnKind.expense ? "خرج" : "درآمد"}',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              SizedBox(
+                width: 70,
+                child: TextField(
+                  controller: emojiCtrl,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 24),
+                  maxLength: 4,
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    hintText: '🏷️',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: nameCtrl,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                      hintText: 'نام دسته (مثلاً کافه، اینترنت)'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          FilledButton(
+            onPressed: () async {
+              final name = nameCtrl.text.trim();
+              if (name.isEmpty) return;
+              final emoji =
+                  emojiCtrl.text.trim().isEmpty ? '🏷️' : emojiCtrl.text.trim();
+              final newCat = Category(
+                id: const Uuid().v4(),
+                name: name,
+                kind: t.kind,
+                emoji: emoji,
+                budget: 0,
+                leak: t.kind == TxnKind.expense,
+              );
+              await ref.read(repoProvider).upsertCategory(newCat);
+              await ref
+                  .read(repoProvider)
+                  .upsertTxn(t.copyWith(categoryId: newCat.id));
+              ref.bump();
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('ذخیره و اختصاص به این تراکنش'),
+          ),
+        ],
       ),
     ),
   );
