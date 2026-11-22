@@ -1,0 +1,51 @@
+# تاریخچه تغییرات باگت (Baguette Changelog)
+
+---
+
+## [0.3.0] - 2026-11-22
+
+### فارسی (Persian)
+- **تشخیص هوشمند بلوبانک:** شناسایی دقیق پیامک‌های بلوبانک با واژه «بلو» جهت ورود خودکار تراکنش‌ها بدون خطا.
+- **پشتیبانی سراسری از بانک‌های کشور:** افزودن ده‌ها بانک و نئوبانک ایرانی (ویپاد، آبانک، توبانک، باجت، ملی، ملت، سامان و...) برای استخراج خودکار مبالغ و کارت‌ها.
+- **انتقال بین حساب‌ها (این جیب به اون جیب):** ثبت انتقال پول میان حساب‌های خود شخص بدون تاثیر در مخارج و درآمدهای ماهانه و حفظ کامل لاگ و بالانس هر حساب.
+- **تشخیص خودکار جفت‌پیامک‌های انتقال:** تجمیع هوشمند دو پیامک واریز و برداشت هم‌مبلغ در یک تراکنش انتقال داخلی.
+- **دکمه تبدیل دستی به انتقال:** امکان تبدیل هر تراکنش به «این جیب به اون جیب» با یک لمس در صفحه جزئیات تراکنش.
+- **دکمه «+ دسته جدید» در منوی سریع:** ساخت فوری دسته جدید با نام و ایموجی دلخواه از درون شیت انتخاب دسته و اختصاص آنی به تراکنش.
+- **دکمه متنی «وارد کردن تراکنش از sms ها»:** اضافه شدن دکمه اختصاصی در بالای صفحه تراکنش‌ها برای استعلام و ثبت سریع پیامک‌ها.
+- **اصلاح جهت فلش‌های تقویم:** تنظیم حرکت ماه بعد (فلش راست) و ماه قبل (فلش چپ) متناسب با چیدمان زبان فارسی و راست‌چین.
+
+### English
+- **Smart BluBank Detection:** Accurately recognizes BluBank SMS using the "بلو" (Blu) keyword for seamless auto-import.
+- **All Iranian Banks Support:** Added parsing support for all major Iranian banks & neo-banks (Wepod, Abank, Tobank, Bajet, Mellat, Melli, Saman, etc.).
+- **Internal Transfers (Pocket-to-Pocket):** Transfers between own accounts update account balances without affecting monthly expense/income totals.
+- **Automatic Transfer Pair Matching:** Automatically merges matching withdrawal and deposit SMS into a single internal transfer transaction.
+- **Manual Convert to Transfer:** One-tap button in transaction details to convert any transaction into an internal transfer.
+- **New Category (+) Button:** Create and immediately assign a new category with custom emoji and name directly from the quick category picker.
+- **Dedicated SMS Import Button:** Prominent "وارد کردن تراکنش از sms ها" button in transactions top bar for 1-tap SMS reading.
+- **RTL Month Pager Fix:** Fixed month navigation arrow directions for right-to-left layout (Right = Next month, Left = Previous month).
+
+---
+
+## [0.2.0] - 2026-11-21
+
+### فارسی (Persian)
+- **ورود خودکار پیامک‌های بانکی:** خواندن خودکار پیامک‌های بانکی و استخراج مبلغ، نوع تراکنش، تاریخ شمسی و شماره کارت.
+- **دسته‌بندی اختیاری (Blank):** خالی ماندن فیلد دسته‌بندی برای انتخاب دلخواه توسط کاربر همراه با برچسب تعیین دسته در لیست.
+- **جلوگیری از ثبت تکراری:** ذخیره شناسه پیامک‌ها در جدول دیتابیس `imported_sms` جهت جلوگیری از ثبت مجدد.
+- **تاریخ دقیق در ماه مالی:** قرارگیری هر تراکنش در ماه مالی متناظر با تاریخ وقوع پیامک.
+
+### English
+- **Automatic Bank SMS Import:** Automatically reads incoming banking SMS and parses amount, transaction type, Shamsi date, and card number.
+- **Blank Category by Default:** Keeps category blank upon import, allowing users to categorize easily with a visible tag.
+- **Duplicate Prevention:** Stores processed SMS IDs in `imported_sms` database table to prevent re-importing.
+- **Exact Financial Month Placement:** Places imported transactions in their respective financial month based on SMS timestamp.
+
+---
+
+## [0.1.0] - 2026-11-09
+
+### فارسی (Persian)
+- **راه‌اندازی اولیه اپلیکیشن:** انتشار نسخه اولیه MVP با دیتابیس امن رمزنگاری‌شده (SQLCipher)، تقویم شمسی و شناسایی باگ‌های ولخرجی.
+
+### English
+- **Initial MVP Release:** First release with encrypted local database (SQLCipher), Persian solar calendar, and spending leak detection.
