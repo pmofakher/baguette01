@@ -138,7 +138,7 @@ class SettingsPage extends ConsumerWidget {
         ),
         const SizedBox(height: 28),
         const Center(
-          child: Text('باگت نسخه 0.2.0 • ساخته‌شده با ❤️ توسط Camros',
+          child: Text('باگت نسخه 0.3.0 • ساخته‌شده با ❤️ توسط Camros',
               style: TextStyle(fontSize: 11, color: BColors.secondary)),
         ),
       ]),
