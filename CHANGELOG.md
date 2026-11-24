@@ -2,6 +2,18 @@
 
 ---
 
+## [0.3.4] - 2026-11-24
+
+### فارسی (Persian)
+- **جملات رندوم در صفحه ورود (Splash):** نمایش تصادفی یکی از ۱۷ جمله مالی/طنز زیر لودینگ در هر بار ورود به برنامه.
+- **خلوت‌تر شدن صفحه اصلی:** حذف کامل باکس نقل‌قول از صفحه خانه (`HomePage`).
+
+### English
+- **Random Splash Screen Quotes:** Displays one of 17 witty financial quotes randomly on the splash screen before entering the app.
+- **Cleaner Home Screen:** Removed the quote card from `HomePage`.
+
+---
+
 ## [0.3.3] - 2026-11-24
 
 ### فارسی (Persian)

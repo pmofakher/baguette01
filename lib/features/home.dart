@@ -104,17 +104,6 @@ class HomePage extends ConsumerWidget {
               ]),
             ),
             const SizedBox(height: 12),
-            const SectionCard(
-              color: BColors.quoteBg,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('«یک پنی که پس‌انداز می‌کنی، یک پنی است که به دست آورده‌ای.»',
-                    style: TextStyle(color: Color(0xFF636363), height: 1.7)),
-                SizedBox(height: 6),
-                Text('بنجامین فرانکلین',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF8B8B8B))),
-              ]),
-            ),
-            const SizedBox(height: 12),
             SectionCard(
               color: BColors.recentBg,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
