@@ -16,4 +16,9 @@ void main() {
     expect(toDisplay(10000, Unit.toman), 1000);
     expect(money(-87000, Unit.toman), '-8,700');
   });
+  test('necessity labels', () {
+    expect(Necessity.essential.label, 'واجب');
+    expect(Necessity.optional.label, 'انتخابی');
+    expect(Necessity.fun.label, 'لذت از زندگی');
+  });
 }

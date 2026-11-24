@@ -14,15 +14,23 @@ const _palette = [
   Color(0xFF9BA5B7), Color(0xFF81B1D5), Color(0xFFB08BBB), Color(0xFFC9A66B),
 ];
 
-class ReportsPage extends ConsumerWidget {
+class ReportsPage extends ConsumerStatefulWidget {
   const ReportsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReportsPage> createState() => _ReportsPageState();
+}
+
+class _ReportsPageState extends ConsumerState<ReportsPage> {
+  Necessity? _necFilter;
+
+  @override
+  Widget build(BuildContext context) {
     final unit = ref.watch(settingsProvider).unit;
     final totals = ref.watch(totalsProvider).valueOrNull ?? const Totals(0, 0);
     final prev = ref.watch(prevTotalsProvider).valueOrNull ?? const Totals(0, 0);
-    final spend = ref.watch(categorySpendProvider).valueOrNull ?? {};
+    final spend =
+        ref.watch(filteredCategorySpendProvider(_necFilter)).valueOrNull ?? {};
     final cats = ref.watch(categoryMapProvider).valueOrNull ?? {};
     final series = ref.watch(seriesProvider).valueOrNull ?? [];
     final nec = ref.watch(necessitySpendProvider).valueOrNull ?? {};
@@ -31,6 +39,7 @@ class ReportsPage extends ConsumerWidget {
     final entries = spend.entries.where((e) => e.value > 0).toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final totalExp = totals.expense;
+    final filteredExp = entries.fold<int>(0, (a, e) => a + e.value);
     final optional =
         (nec[Necessity.optional] ?? 0) + (nec[Necessity.fun] ?? 0);
 
@@ -68,10 +77,79 @@ class ReportsPage extends ConsumerWidget {
               ]),
             ),
             const SizedBox(height: 16),
+            SectionCard(
+              color: BColors.recentBg,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('دسته‌بندی خرج بر اساس اهمیت',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  if (totalExp == 0)
+                    const Text('خرجی برای تحلیل ثبت نشده است.',
+                        style: TextStyle(fontSize: 13))
+                  else ...[
+                    for (final n in Necessity.values) ...[
+                      Builder(builder: (_) {
+                        final val = nec[n] ?? 0;
+                        final ratio = totalExp > 0 ? val / totalExp : 0.0;
+                        final c = necessityColor(n);
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '${n.label} (${(ratio * 100).round()}٪)',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: c,
+                                      ),
+                                    ),
+                                  ),
+                                  MoneyText(val, unit, size: 13, color: c),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(5),
+                                child: LinearProgressIndicator(
+                                  value: ratio.clamp(0.0, 1.0),
+                                  minHeight: 7,
+                                  color: c,
+                                  backgroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                    const SizedBox(height: 6),
+                    Text(
+                      '${(optional / totalExp * 100).round()}٪ خرجت این ماه «انتخابی» یا «لذت از زندگی» بوده (${money(optional, unit)} ${unitLabel(unit)}).',
+                      style: const TextStyle(fontSize: 12, color: BColors.primary),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text('سهم دسته‌ها از خرج', style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            NecessityFilterBar(
+              selected: _necFilter,
+              onChanged: (v) => setState(() => _necFilter = v),
+            ),
             const SizedBox(height: 12),
             if (entries.isEmpty)
-              const EmptyState('خرجی برای نمایش نیست')
+              EmptyState(_necFilter == null
+                  ? 'خرجی برای نمایش نیست'
+                  : 'خرجی با برچسب «${_necFilter!.label}» ثبت نشده')
             else ...[
               SizedBox(
                 height: 190,
@@ -103,8 +181,9 @@ class ReportsPage extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                         child: Text(
-                            '${cats[entries[i].key]?.emoji ?? ''} ${cats[entries[i].key]?.name ?? 'نامشخص'}')),
-                    Text('${(entries[i].value / totalExp * 100).round()}٪  ',
+                            '${cats[entries[i].key]?.emoji ?? ''} ${cats[entries[i].key]?.name ?? 'بدون دسته‌بندی'}')),
+                    Text(
+                        '${filteredExp > 0 ? (entries[i].value / filteredExp * 100).round() : 0}٪  ',
                         style: const TextStyle(fontSize: 12)),
                     MoneyText(entries[i].value, unit, size: 13),
                   ]),
@@ -162,13 +241,6 @@ class ReportsPage extends ConsumerWidget {
                     )),
             ),
             const SizedBox(height: 20),
-            if (totalExp > 0)
-              SectionCard(
-                color: BColors.recentBg,
-                child: Text(
-                    '${(optional / totalExp * 100).round()}٪ خرجت این ماه «غیرضروری» یا «لذت از زندگی» بوده (${money(optional, unit)} ${unitLabel(unit)}).'),
-              ),
-            const SizedBox(height: 12),
             SectionCard(
               color: BColors.expenseCard.withAlpha(110),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

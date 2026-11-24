@@ -9,10 +9,17 @@ import '../core/widgets.dart';
 import '../data/models.dart';
 import '../state/providers.dart';
 
-class TransactionsPage extends ConsumerWidget {
+class TransactionsPage extends ConsumerStatefulWidget {
   const TransactionsPage({super.key});
 
-  Future<void> _syncSms(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<TransactionsPage> createState() => _TransactionsPageState();
+}
+
+class _TransactionsPageState extends ConsumerState<TransactionsPage> {
+  Necessity? _necFilter;
+
+  Future<void> _syncSms(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
     messenger.showSnackBar(
       const SnackBar(
@@ -35,13 +42,19 @@ class TransactionsPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final txns = ref.watch(periodTxnsProvider).valueOrNull ?? [];
+  Widget build(BuildContext context) {
+    final allTxns = ref.watch(periodTxnsProvider).valueOrNull ?? [];
+    final txns = _necFilter == null
+        ? allTxns
+        : allTxns
+            .where((t) => t.kind == TxnKind.expense && t.necessity == _necFilter)
+            .toList();
+    final unit = ref.watch(settingsProvider).unit;
     final uncategorized =
         ref.watch(uncategorizedCountProvider).valueOrNull ?? 0;
     final children = <Widget>[];
 
-    if (uncategorized > 0) {
+    if (uncategorized > 0 && _necFilter == null) {
       children.add(
         Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -69,6 +82,37 @@ class TransactionsPage extends ConsumerWidget {
       );
     }
 
+    if (_necFilter != null && txns.isNotEmpty) {
+      final sum = txns.fold<int>(0, (a, t) => a + t.amount);
+      children.add(
+        Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: necessityColor(_necFilter!).withAlpha(24),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: necessityColor(_necFilter!).withAlpha(90), width: 0.8),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '${txns.length} خرج «${_necFilter!.label}»',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w700),
+                ),
+              ),
+              MoneyText(sum, unit,
+                  size: 13,
+                  weight: FontWeight.w700,
+                  color: necessityColor(_necFilter!)),
+            ],
+          ),
+        ),
+      );
+    }
+
     String? last;
     for (final t in txns) {
       final label = dayLabel(t.occurredAt);
@@ -88,7 +132,7 @@ class TransactionsPage extends ConsumerWidget {
       BTopBar(
         title: 'تراکنش‌ها',
         action: InkWell(
-          onTap: () => _syncSms(context, ref),
+          onTap: () => _syncSms(context),
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -116,9 +160,17 @@ class TransactionsPage extends ConsumerWidget {
         ),
       ),
       const MonthPager(),
+      NecessityFilterBar(
+        selected: _necFilter,
+        padding: const EdgeInsets.fromLTRB(24, 4, 24, 6),
+        onChanged: (v) => setState(() => _necFilter = v),
+      ),
       Expanded(
         child: txns.isEmpty
-            ? const Center(child: EmptyState('تراکنشی در این ماه نیست'))
+            ? Center(
+                child: EmptyState(_necFilter == null
+                    ? 'تراکنشی در این ماه نیست'
+                    : 'خرجی با برچسب «${_necFilter!.label}» در این ماه نیست'))
             : ListView(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 110),
                 children: children),
@@ -248,7 +300,10 @@ class TxnDetailPage extends ConsumerWidget {
                 cats[t.categoryId]?.name ?? 'تعیین نشده (لمس برای انتخاب) 🏷️'),
           ),
         if (t.kind == TxnKind.expense) ...[
-          row('اهمیت:', t.necessity.label),
+          InkWell(
+            onTap: () => showQuickNecessityPicker(context, ref, t),
+            child: row('اهمیت:', '${t.necessity.label} (لمس برای تغییر)'),
+          ),
           row('نوع خرج:', t.isFixed ? 'ثابت ماهانه' : 'یونیک'),
         ],
         row('مبلغ:', '${money(t.amount, unit)} ${unitLabel(unit)}'),
@@ -401,7 +456,7 @@ class _TxnFormPageState extends ConsumerState<TxnFormPage> {
     DropdownButtonFormField<String> accDrop(
             String label, String? v, ValueChanged<String?> on) =>
         DropdownButtonFormField<String>(
-          value: v,
+          initialValue: v,
           decoration: InputDecoration(labelText: label),
           items: [
             for (final a in _accounts)

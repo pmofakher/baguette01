@@ -9,7 +9,7 @@ Future<Database> openBaguetteDb(String password) async {
   return openDatabase(
     p.join(dir, 'baguette.db'),
     password: password,
-    version: 2,
+    version: 3,
     onCreate: _onCreate,
     onUpgrade: _onUpgrade,
   );
@@ -27,6 +27,81 @@ Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     try {
       await db.execute("ALTER TABLE accounts ADD COLUMN card_suffix TEXT NOT NULL DEFAULT ''");
     } catch (_) {}
+  }
+  if (oldVersion < 3) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.update(
+      'categories',
+      {'deleted': 1, 'updated_at': now},
+      where: 'deleted = 0',
+    );
+    final b = db.batch();
+    _seedCategories(b, now);
+    await b.commit(noResult: true);
+  }
+}
+
+void _seedCategories(Batch b, int now) {
+  // دسته‌های پیش‌فرض به ترتیب عمومیت و استفاده روزمره (در ادامه بر اساس تکرار انتخاب کاربر مرتب می‌شوند)
+  const expense = [
+    ['خوراک و خواروبار', '🛒', 1],
+    ['رستوران و تیک اوی', '🍔', 1],
+    ['قهوه و نوشیدنی', '☕', 1],
+    ['حمل و نقل', '🚕', 1],
+    ['خرده خرج', '🧾', 1],
+    ['قبض و اشتراک', '📱', 1],
+    ['مسکن و ساختمان', '🏠', 1],
+    ['ماشین', '🚗', 1],
+    ['سلامت و درمان', '🩺', 1],
+    ['لباس', '👕', 1],
+    ['تفریح سرگرمی', '🎮', 1],
+    ['خانواده', '👨\u200d👩\u200d👧\u200d👦', 1],
+    ['آرایشگاه', '💈', 1],
+    ['ورزش', '🏋️', 1],
+    ['قسط و بدهی', '🗓️', 0],
+    ['پرداخت بدهی', '💳', 0],
+    ['تجهیزات کار', '💻', 1],
+    ['کلاس و آموزش', '📚', 1],
+    ['هدیه و مناسبت', '🎁', 1],
+    ['بیمه و مالیات', '🛡️', 0],
+    ['خیریه', '🤲', 0],
+    ['سفر', '✈️', 1],
+    ['حیوان خانگی', '🐾', 1],
+  ];
+  for (final c in expense) {
+    b.insert('categories', {
+      'id': _uuid.v4(),
+      'name': c[0],
+      'kind': 'expense',
+      'emoji': c[1],
+      'budget': 0,
+      'leak': c[2],
+      'updated_at': now,
+      'deleted': 0,
+    });
+  }
+  const income = [
+    ['حقوق', '💼'],
+    ['پروژه', '🧑\u200d💻'],
+    ['بیزنس', '🏢'],
+    ['فروش دارایی', '🏷️'],
+    ['سود', '💰'],
+    ['اجاره', '🔑'],
+    ['سرمایه گذاری', '📈'],
+    ['دلالی', '🤝'],
+    ['پس گرفتن طلب', '💸'],
+  ];
+  for (final c in income) {
+    b.insert('categories', {
+      'id': _uuid.v4(),
+      'name': c[0],
+      'kind': 'income',
+      'emoji': c[1],
+      'budget': 0,
+      'leak': 0,
+      'updated_at': now,
+      'deleted': 0,
+    });
   }
 }
 
@@ -78,28 +153,6 @@ Future<void> _onCreate(Database db, int v) async {
       'initial_balance': 0, 'updated_at': now, 'deleted': 0,
     });
   }
-  // دسته‌های پیش‌فرض (از لیست دسته‌های فیگما). آخرین مقدار = حساب شدن در تشخیص نشتی
-  const expense = [
-    ['باشگاه', '🏋️', 1], ['لیزر', '✨', 1], ['آرایشگاه', '💈', 1],
-    ['لباس', '👕', 1], ['بیرون رفاقتی', '🍔', 1], ['دیت', '❤️', 1],
-    ['برنامه', '📱', 1], ['رفت و آمد', '🚌', 1], ['خرده خرج', '🧾', 1],
-    ['درمان', '🩺', 1], ['صدقه', '🤲', 0], ['سرمایه‌گذاری', '📈', 0],
-    ['پرداخت بدهی', '💳', 0], ['قسط', '🗓️', 0], ['قرض دادن', '🤝', 0],
-    ['ماشین', '🚗', 1],
-  ];
-  for (final c in expense) {
-    b.insert('categories', {
-      'id': _uuid.v4(), 'name': c[0], 'kind': 'expense', 'emoji': c[1],
-      'budget': 0, 'leak': c[2], 'updated_at': now, 'deleted': 0,
-    });
-  }
-  for (final c in const [
-    ['حقوق شرکت', '💼'], ['پروژه', '🧑‍💻'], ['سایر درآمدها', '💰'],
-  ]) {
-    b.insert('categories', {
-      'id': _uuid.v4(), 'name': c[0], 'kind': 'income', 'emoji': c[1],
-      'budget': 0, 'leak': 0, 'updated_at': now, 'deleted': 0,
-    });
-  }
+  _seedCategories(b, now);
   await b.commit(noResult: true);
 }

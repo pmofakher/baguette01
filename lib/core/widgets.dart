@@ -211,12 +211,51 @@ class TxnTile extends ConsumerWidget {
                           ],
                         ],
                       ),
-                      if (t.title.isNotEmpty)
-                        Text(t.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 11, color: BColors.primary)),
+                      if (t.kind == TxnKind.expense || t.title.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              if (t.kind == TxnKind.expense)
+                                InkWell(
+                                  onTap: () =>
+                                      showQuickNecessityPicker(context, ref, t),
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: necessityColor(t.necessity)
+                                          .withAlpha(32),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: necessityColor(t.necessity)
+                                            .withAlpha(110),
+                                        width: 0.7,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      t.necessity.label,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: necessityColor(t.necessity),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              if (t.title.isNotEmpty)
+                                Text(t.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 11, color: BColors.primary)),
+                            ],
+                          ),
+                        ),
                     ]),
               ),
               MoneyText(t.amount, unit,
@@ -229,6 +268,93 @@ class TxnTile extends ConsumerWidget {
       ),
     );
   }
+}
+
+Color necessityColor(Necessity n) => switch (n) {
+      Necessity.essential => BColors.primaryDark,
+      Necessity.optional => const Color(0xFF9C6500),
+      Necessity.fun => BColors.incomeText,
+    };
+
+class NecessityFilterBar extends StatelessWidget {
+  final Necessity? selected;
+  final ValueChanged<Necessity?> onChanged;
+  final EdgeInsetsGeometry padding;
+
+  const NecessityFilterBar({
+    super.key,
+    required this.selected,
+    required this.onChanged,
+    this.padding = EdgeInsets.zero,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: padding,
+      child: Row(
+        children: [
+          ChoiceChip(
+            label: const Text('همه', style: TextStyle(fontSize: 12)),
+            selected: selected == null,
+            onSelected: (_) => onChanged(null),
+          ),
+          for (final n in Necessity.values) ...[
+            const SizedBox(width: 8),
+            ChoiceChip(
+              label: Text(n.label, style: const TextStyle(fontSize: 12)),
+              selected: selected == n,
+              selectedColor: necessityColor(n).withAlpha(45),
+              onSelected: (_) => onChanged(selected == n ? null : n),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+Future<void> showQuickNecessityPicker(
+    BuildContext context, WidgetRef ref, Txn t) async {
+  await showModalBottomSheet(
+    context: context,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'برچسب هزینه برای «${t.title.isNotEmpty ? t.title : t.kind.label}»',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final n in Necessity.values)
+                  ChoiceChip(
+                    label: Text(n.label),
+                    selected: t.necessity == n,
+                    selectedColor: necessityColor(n).withAlpha(45),
+                    onSelected: (_) async {
+                      await ref
+                          .read(repoProvider)
+                          .upsertTxn(t.copyWith(necessity: n));
+                      ref.bump();
+                      if (ctx.mounted) Navigator.pop(ctx);
+                    },
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 Future<void> showQuickCategoryPicker(

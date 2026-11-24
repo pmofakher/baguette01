@@ -118,6 +118,13 @@ final categorySpendProvider =
   return ref.watch(repoProvider).categorySpend(p.start, p.end);
 });
 
+final filteredCategorySpendProvider =
+    FutureProvider.autoDispose.family<Map<String, int>, Necessity?>((ref, nec) {
+  ref.watch(versionProvider);
+  final p = ref.watch(periodProvider);
+  return ref.watch(repoProvider).categorySpend(p.start, p.end, necessity: nec);
+});
+
 final necessitySpendProvider =
     FutureProvider.autoDispose<Map<Necessity, int>>((ref) {
   ref.watch(versionProvider);

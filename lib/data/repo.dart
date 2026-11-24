@@ -109,11 +109,16 @@ FROM accounts a WHERE a.deleted=0''');
   }
 
   // ---------- categories ----------
+  /// دسته‌ها بر اساس تعداد دفعات انتخاب در تراکنش‌ها و سپس ترتیب پیش‌فرض مرتب می‌شوند
   Future<List<Category>> categories(TxnKind kind) async =>
-      (await db.query('categories',
-              where: 'deleted = 0 AND kind = ?',
-              whereArgs: [kind.name],
-              orderBy: 'rowid'))
+      (await db.rawQuery('''
+SELECT c.*, (
+  SELECT COUNT(*) FROM transactions t
+  WHERE t.deleted = 0 AND t.category_id = c.id
+) AS usage_count
+FROM categories c
+WHERE c.deleted = 0 AND c.kind = ?
+ORDER BY usage_count DESC, c.rowid ASC''', [kind.name]))
           .map(Category.fromJson)
           .toList();
 
@@ -160,11 +165,18 @@ GROUP BY kind''', [from.millisecondsSinceEpoch, to.millisecondsSinceEpoch]);
     return Totals(inc, exp);
   }
 
-  Future<Map<String, int>> categorySpend(DateTime from, DateTime to) async {
+  Future<Map<String, int>> categorySpend(DateTime from, DateTime to,
+      {Necessity? necessity}) async {
+    final args = <Object?>[
+      from.millisecondsSinceEpoch,
+      to.millisecondsSinceEpoch,
+    ];
+    final necClause = necessity != null ? ' AND necessity=?' : '';
+    if (necessity != null) args.add(necessity.name);
     final rows = await db.rawQuery('''
 SELECT COALESCE(category_id,'') AS cid, SUM(amount) AS s FROM transactions
-WHERE deleted=0 AND kind='expense' AND occurred_at>=? AND occurred_at<?
-GROUP BY cid''', [from.millisecondsSinceEpoch, to.millisecondsSinceEpoch]);
+WHERE deleted=0 AND kind='expense' AND occurred_at>=? AND occurred_at<?$necClause
+GROUP BY cid''', args);
     return {
       for (final r in rows) r['cid'] as String: (r['s'] as num).toInt()
     };

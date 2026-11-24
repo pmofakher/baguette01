@@ -19,7 +19,7 @@ extension TxnKindX on TxnKind {
 extension NecessityX on Necessity {
   String get label => switch (this) {
         Necessity.essential => 'واجب',
-        Necessity.optional => 'غیرضروری',
+        Necessity.optional => 'انتخابی',
         Necessity.fun => 'لذت از زندگی',
       };
 }

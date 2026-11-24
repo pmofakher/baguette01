@@ -76,7 +76,7 @@ class SettingsPage extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
         DropdownButtonFormField<int>(
-          value: s.startDay,
+          initialValue: s.startDay,
           decoration: const InputDecoration(labelText: 'روز شروع ماه مالی'),
           items: [
             for (var d = 1; d <= 28; d++) DropdownMenuItem(value: d, child: Text('$d'))
@@ -138,7 +138,7 @@ class SettingsPage extends ConsumerWidget {
         ),
         const SizedBox(height: 28),
         const Center(
-          child: Text('باگت نسخه 0.3.1 • ساخته‌شده با ❤️ توسط Camros',
+          child: Text('باگت نسخه 0.3.3 • ساخته‌شده با ❤️ توسط Camros',
               style: TextStyle(fontSize: 11, color: BColors.secondary)),
         ),
       ]),

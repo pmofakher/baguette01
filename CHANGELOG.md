@@ -2,6 +2,20 @@
 
 ---
 
+## [0.3.3] - 2026-11-24
+
+### فارسی (Persian)
+- **بازطراحی کامل لیست دسته‌های خرج و درآمد:** جایگزینی دسته‌های پیش‌فرض با ۲۳ دسته خرج جدید و ۹ دسته درآمد جدید، مرتب‌شده از دسته‌های عمومی‌تر و پرکاربردتر در ابتدا و مهاجرت امن دیتابیس (نسخه ۳).
+- **مرتب‌سازی هوشمند دسته‌ها بر اساس تکرار انتخاب:** افزایش خودکار اولویت دسته‌هایی که کاربر بیشتر در تراکنش‌ها انتخاب می‌کند در منوی تعیین دسته و فرم ثبت تراکنش.
+- **برچسب‌های «واجب / انتخابی / لذت از زندگی»:** تغییر برچسب «غیرضروری» به «انتخابی»، نمایش برچسب روی ردیف خرج‌ها با امکان تغییر سریع یک‌لمسی، و افزودن فیلتر بر اساس برچسب در صفحه تراکنش‌ها و نمودار دسته‌های صفحه گزارش همراه با کارت تحلیل اهمیت خرج.
+
+### English
+- **Revamped Expense & Income Categories:** Replaced default categories with 23 expense and 9 income categories ordered from general/everyday items first, with safe DB v3 migration.
+- **Frequency-Based Category Ordering:** Categories dynamically sort higher in pickers and transaction forms based on how often the user selects them.
+- **Necessity Tags & Filters (واجب / انتخابی / لذت از زندگی):** Renamed "غیرضروری" to "انتخابی", added quick 1-tap tag badges on expense items and details, and added necessity breakdown & interactive filtering in Transactions and Reports.
+
+---
+
 ## [0.3.1] - 2026-11-24
 
 ### فارسی (Persian)
