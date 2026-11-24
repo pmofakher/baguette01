@@ -2,6 +2,20 @@
 
 ---
 
+## [0.3.1] - 2026-11-24
+
+### فارسی (Persian)
+- **آیکون رسمی باگت (Adaptive Icon):** طراحی و جایگزینی آیکون پیش‌فرض اپلیکیشن با آیکون تطبیقی مدرن اندروید شامل پس‌زمینه کرم گرم و لایه رویی شفاف در محدوده امن (Safe Zone) بدون بریدگی در ماسک‌های دایره و Squircle.
+- **پشتیبانی از آیکون تک‌رنگ (Material You):** افزودن لایه Monochrome در `mipmap-anydpi-v26` برای هماهنگی آیکون با تم والپیپر در اندروید ۱۳ و بالاتر.
+- **نسخه Legacy و منابع `assets/icons`:** تولید تمام سایزهای `mipmap` و `drawable` با `flutter_launcher_icons` و تنظیم نسخه `0.3.1+4`.
+
+### English
+- **Modern Adaptive Launcher Icon:** Replaced the default Flutter icon with a modern Android Adaptive Icon featuring a warm cream background and a clean foreground centered in the launcher safe zone to prevent clipping on circle/squircle masks.
+- **Material You Monochrome Icon:** Added a monochrome layer (`ic_launcher_monochrome`) for Android 13+ themed icon support.
+- **Legacy Icon & Assets:** Generated all `mipmap-*` and `drawable-*` resources via `flutter_launcher_icons` and bumped app version to `0.3.1+4`.
+
+---
+
 ## [0.3.0] - 2026-11-22
 
 ### فارسی (Persian)
